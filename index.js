@@ -14,7 +14,7 @@ app.use(cors({
 
 app.post('/createPayment', async (req,res) => {
   const { sum, productsNames, emailField } = req.body;
-  const checkout = new YooCheckout({ shopId: '318765', secretKey: 'test_GHOrTwTOvGy-V-RWkqB04y_eTsQWRzam9PnqhgGoHUs' });
+  const checkout = new YooCheckout({ shopId: '219584', secretKey: 'live_UN6Al9vIbRc6bBMdXTkJgCWFrZT9NLdpuOqw3OvbDEE' });
 
   const idempotenceKey = uuidv4();
 
@@ -23,12 +23,25 @@ app.post('/createPayment', async (req,res) => {
       value: `${sum}.00`,
       currency: 'RUB'
     },
-    payment_method_data: {
-      type: 'bank_card'
-    },
     confirmation: {
       type: 'redirect',
       return_url: 'https://momjulee.ru/results'
+    },
+    receipt: {
+      customer: {
+        email: emailField
+      },
+      items: [
+        {
+          description: productsNames,
+          quantity: "1",
+          amount: {
+            value: `${sum}.00`,
+            currency: "RUB"
+          },
+          vat_code: "1"
+        },
+      ]
     },
     capture: true,
     description: productsNames,
@@ -44,7 +57,7 @@ app.post('/createPayment', async (req,res) => {
 
 app.post('/checkPaymentStatus', async (req,res) => {
   const { paymentId } = req.body;
-  const checkout = new YooCheckout({ shopId: '318765', secretKey: 'test_GHOrTwTOvGy-V-RWkqB04y_eTsQWRzam9PnqhgGoHUs' });
+  const checkout = new YooCheckout({ shopId: '219584', secretKey: 'live_UN6Al9vIbRc6bBMdXTkJgCWFrZT9NLdpuOqw3OvbDEE' });
   try {
     const payment = await checkout.getPayment(paymentId);
     if(payment?.status === 'succeeded') {
@@ -62,10 +75,24 @@ app.post('/checkPaymentStatus', async (req,res) => {
         to: payment.metadata.email,
         subject: "Гайд: Календарь развития ребенка",
         html: `
-            <h1>Добрый день. Спасибо за покупку</h1>
-            <a href="https://drive.google.com/drive/folders/1xV8YRBBkzrR6FwhoU4nKvT1NiOo-RsGX">Ваша ссылка на скачивание гайда</a>
+            <p style="margin-bottom:30px">Благодарю Вас за покупку!</p>
+            <p style="margin-bottom:30px">Календарь развития доступен. <br/>
+              Его можно скачать перейдя по ссылке ниже.</p>
+            <h3 style="margin-bottom:30px">Гайд “Календарь развития ребенка”</h3>
+            <a style="margin-bottom:30px" href="https://drive.google.com/drive/folders/1IDYKfLTl-VnSEgxlWT5ai4xahMlWUDvP?usp=sharing">
+              https://drive.google.com/drive/folders/1IDYKfLTl-VnSEgxlWT5ai4xahMlWUDvP?usp=sharing
+            </a>
+            <p>
+              Присоединяйтесь ко мне в Инстаграм - <a target="_blank" href="https://www.instagram.com/momjulee/">
+                @momjulee
+              </a>
+            </p>
+            <p>
+              В блоге я делюсь простыми и полезными идеями для детского творчества и развития. <br/>
+              С любовью, Юлия Раткевич.
+            </p>
             `,
-        });
+      });
       console.log('info',info)
     }
 
@@ -74,28 +101,6 @@ app.post('/checkPaymentStatus', async (req,res) => {
     console.error(error);
   }
 })
-
-// app.post('/sendMail', async (req,res) => {
-//   const transporter = nodemailer.createTransport({
-//     host: "smtp.gmail.com",
-//     port: 465,
-//     secure: true,
-//     auth: {
-//       user: "e6wuk1990@gmail.com", // Your email address
-//       pass: "krcnxmjjyfnhpeeb", // Password (for gmail, your app password)
-//     },
-//   })
-//   let info = await transporter.sendMail({
-//     from: '"Юлия Раткевич" <***-e6wuk1990@gmail.com>',
-//     to: "e6wuk1990@mail.ru",
-//     subject: "Гайд: Календарь развития ребенка",
-//     html: `
-//     <h1>Добрый день. Спасибо за покупку</h1>
-//     <a href="https://drive.google.com/drive/folders/1xV8YRBBkzrR6FwhoU4nKvT1NiOo-RsGX">Ваша ссылка на скачивание гайда</a>
-//     `,
-//   });
-//   console.log('info',info.messageId)
-// })
 
 const PORT = 8000;
 
