@@ -13,10 +13,31 @@ app.use(cors({
 }));
 
 app.post('/createPayment', async (req,res) => {
-  const { sum, productsNames, emailField } = req.body;
+  const { sum, products, emailField } = req.body;
   const checkout = new YooCheckout({ shopId: '219584', secretKey: 'live_UN6Al9vIbRc6bBMdXTkJgCWFrZT9NLdpuOqw3OvbDEE' });
-
+  const productsNames = products.map(item => item.name).join(', ')
   const idempotenceKey = uuidv4();
+
+  const items = products.map(item => {
+    return {
+      description: item.name,
+      quantity: "1",
+      amount: {
+        value: `${item.price}.00`,
+        currency: "RUB"
+      },
+      vat_code: "1"
+    }
+  })
+
+  const emailBody = products.map(product => {
+    return `<div><p>${product.name}</p><a href="${product.link}">${product.link}</a></div>`
+  }).join('');
+
+  const finalMeta = {};
+
+  finalMeta.email = emailField;
+  finalMeta.emailBody = emailBody;
 
   const createPayload = {
     amount: {
@@ -31,21 +52,11 @@ app.post('/createPayment', async (req,res) => {
       customer: {
         email: emailField
       },
-      items: [
-        {
-          description: productsNames,
-          quantity: "1",
-          amount: {
-            value: `${sum}.00`,
-            currency: "RUB"
-          },
-          vat_code: "1"
-        },
-      ]
+      items
     },
     capture: true,
     description: productsNames,
-    metadata: {email: emailField}
+    metadata: finalMeta
   };
   try {
     const payment = await checkout.createPayment(createPayload, idempotenceKey);
@@ -73,15 +84,12 @@ app.post('/checkPaymentStatus', async (req,res) => {
       let info = await transporter.sendMail({
         from: '"Юлия Раткевич" <***-e6wuk1990@gmail.com>',
         to: payment.metadata.email,
-        subject: "Гайд: Календарь развития ребенка",
+        subject: payment.description,
         html: `
             <p style="margin-bottom:30px">Благодарю Вас за покупку!</p>
-            <p style="margin-bottom:30px">Календарь развития доступен. <br/>
-              Его можно скачать перейдя по ссылке ниже.</p>
-            <h3 style="margin-bottom:30px">Гайд “Календарь развития ребенка”</h3>
-            <a style="margin-bottom:30px" href="https://drive.google.com/drive/folders/1IDYKfLTl-VnSEgxlWT5ai4xahMlWUDvP?usp=sharing">
-              https://drive.google.com/drive/folders/1IDYKfLTl-VnSEgxlWT5ai4xahMlWUDvP?usp=sharing
-            </a>
+            <p style="margin-bottom:30px">Ваши покупки доступны. <br/>
+              Их можно скачать перейдя по ссылке ниже.</p>
+            ${payment.metadata.emailBody}
             <p>
               Присоединяйтесь ко мне в Инстаграм - <a target="_blank" href="https://www.instagram.com/momjulee/">
                 @momjulee
@@ -93,9 +101,7 @@ app.post('/checkPaymentStatus', async (req,res) => {
             </p>
             `,
       });
-      console.log('info',info)
     }
-
     return  res.status(200).json(payment);
   } catch (error) {
     console.error(error);
